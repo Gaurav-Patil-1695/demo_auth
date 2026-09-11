@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from typing import Optional
 
 from app.auth.schemas import (
-    ErrorResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -19,8 +18,6 @@ from app.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-bearer_scheme = HTTPBearer(auto_error=False)
-
 
 def get_auth_service() -> AuthService:
     return AuthService()
@@ -34,9 +31,10 @@ def get_auth_service() -> AuthService:
 )
 async def register(
     body: RegisterRequest,
+    response: Response,
     service: AuthService = Depends(get_auth_service),
 ) -> RegisterResponse:
-    return await service.register(body)
+    return await service.register(body, response)
 
 
 @router.post(
@@ -47,10 +45,36 @@ async def register(
 )
 async def login(
     body: LoginRequest,
+    request: Request,
     response: Response,
     service: AuthService = Depends(get_auth_service),
 ) -> LoginResponse:
-    return await service.login(body, response)
+    return await service.login(body, request, response)
+
+
+@router.post(
+    "/refresh",
+    response_model=RefreshResponse,
+    status_code=status.HTTP_200_OK,
+    operation_id="refresh",
+)
+async def refresh(
+    response: Response,
+    refresh_token: Optional[str] = Cookie(default=None, alias="refresh_token"),
+    service: AuthService = Depends(get_auth_service),
+) -> RefreshResponse:
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": {
+                    "code": "MISSING_REFRESH_TOKEN",
+                    "message": "Refresh token is missing.",
+                    "details": {},
+                }
+            },
+        )
+    return await service.refresh(refresh_token, response)
 
 
 @router.post(
@@ -61,9 +85,10 @@ async def login(
 )
 async def forgotPassword(
     body: ForgotPasswordRequest,
+    request: Request,
     service: AuthService = Depends(get_auth_service),
 ) -> ForgotPasswordResponse:
-    return await service.forgotPassword(body)
+    return await service.forgotPassword(body, request)
 
 
 @router.post(
@@ -86,15 +111,10 @@ async def resetPassword(
     operation_id="me",
 )
 async def me(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    request: Request,
     service: AuthService = Depends(get_auth_service),
 ) -> MeResponse:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-    return await service.me(credentials.credentials)
+    return await service.me(request)
 
 
 @router.post(
@@ -104,31 +124,8 @@ async def me(
     operation_id="logout",
 )
 async def logout(
-    request: Request,
     response: Response,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    refresh_token: Optional[str] = Cookie(default=None, alias="refresh_token"),
     service: AuthService = Depends(get_auth_service),
 ) -> LogoutResponse:
-    token = credentials.credentials if credentials is not None else None
-    refresh_token = request.cookies.get("refresh_token")
-    result = await service.logout(
-        access_token=token,
-        refresh_token=refresh_token,
-        response=response,
-    )
-    return result
-
-
-@router.post(
-    "/refresh",
-    response_model=RefreshResponse,
-    status_code=status.HTTP_200_OK,
-    operation_id="refresh",
-)
-async def refresh(
-    request: Request,
-    response: Response,
-    service: AuthService = Depends(get_auth_service),
-) -> RefreshResponse:
-    refresh_token = request.cookies.get("refresh_token")
-    return await service.refresh(refresh_token=refresh_token, response=response)
+    return await service.logout(refresh_token, response)
