@@ -1,0 +1,66 @@
+export interface User {
+  id: string;
+  full_name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthTokens {
+  access_token: string;
+  token_type: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  access_token: string;
+  token_type: string;
+}
+
+export interface RegisterRequest {
+  full_name: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  remember_me?: boolean;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirm_password: string;
+}
+
+export interface ErrorDetail {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
+export interface ErrorResponse {
+  error: ErrorDetail;
+}
+
+export class ApiError extends Error {
+  readonly code: string;
+  readonly status: number;
+  readonly details: unknown;
+
+  constructor(message: string, code: string, status: number, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+}
