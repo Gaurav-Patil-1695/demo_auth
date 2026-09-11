@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 from jose import jwt
 
@@ -54,7 +54,7 @@ def generate_opaque_token() -> str:
 
 def create_access_token(
     user_id: int,
-    extra_claims: Optional[dict[str, Any]] = None,
+    extra_claims: dict[str, Any] | None = None,
 ) -> str:
     """Create a signed JWT access token for *user_id*.
 

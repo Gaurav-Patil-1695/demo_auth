@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 
 interface PasswordFieldProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  error?: string;
-  hint?: string;
-  autoComplete?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  required?: boolean;
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  readonly onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  readonly error?: string;
+  readonly hint?: string;
+  readonly autoComplete?: string;
+  readonly placeholder?: string;
+  readonly disabled?: boolean;
+  readonly required?: boolean;
 }
 
 function PasswordField({

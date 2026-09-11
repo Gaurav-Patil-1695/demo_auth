@@ -1,14 +1,14 @@
 import React from 'react';
 
 interface CheckboxProps {
-  id: string;
-  label: React.ReactNode;
-  checked: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-  error?: string;
-  disabled?: boolean;
-  required?: boolean;
+  readonly id: string;
+  readonly label: React.ReactNode;
+  readonly checked: boolean;
+  readonly onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  readonly onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  readonly error?: string;
+  readonly disabled?: boolean;
+  readonly required?: boolean;
 }
 
 function Checkbox({

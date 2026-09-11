@@ -1,9 +1,9 @@
 import React from 'react';
 
 interface Rule {
-  key: string;
-  label: string;
-  test: (password: string) => boolean;
+  readonly key: string;
+  readonly label: string;
+  readonly test: (password: string) => boolean;
 }
 
 const RULES: Rule[] = [
@@ -30,7 +30,7 @@ const RULES: Rule[] = [
 ];
 
 interface PasswordStrengthMeterProps {
-  password: string;
+  readonly password: string;
 }
 
 function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps): JSX.Element {

@@ -10,13 +10,13 @@ import { login as apiLogin, logout as apiLogout, me as apiMe, refresh as apiRefr
 import type { LoginRequest, RegisterRequest, UserResponse } from '../api/types';
 
 interface AuthContextValue {
-  user: UserResponse | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
-  logout: () => Promise<void>;
-  refresh: () => Promise<void>;
+  readonly user: UserResponse | null;
+  readonly isAuthenticated: boolean;
+  readonly isLoading: boolean;
+  readonly login: (data: LoginRequest) => Promise<void>;
+  readonly register: (data: RegisterRequest) => Promise<void>;
+  readonly logout: () => Promise<void>;
+  readonly refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);

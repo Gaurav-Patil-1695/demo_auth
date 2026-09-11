@@ -44,6 +44,42 @@ type FetchOptions = RequestInit & {
   skipAuth?: boolean;
 };
 
+async function retryWithNewToken<T>(
+  url: string,
+  init: RequestInit,
+  headers: Headers,
+  newToken: string | null,
+  originalResponse: Response,
+): Promise<Response> {
+  if (newToken) {
+    headers.set('Authorization', `Bearer ${newToken}`);
+    return fetch(url, { ...init, credentials: 'include', headers });
+  }
+  const errorPayload = await safeJson(originalResponse);
+  throw normaliseError(originalResponse.status, errorPayload);
+}
+
+async function handleUnauthorized<T>(
+  url: string,
+  init: RequestInit,
+  headers: Headers,
+  response: Response,
+): Promise<Response> {
+  if (isRefreshing) {
+    const newToken = await new Promise<string | null>((resolve) => {
+      refreshQueue.push(resolve);
+    });
+    return retryWithNewToken(url, init, headers, newToken, response);
+  }
+
+  isRefreshing = true;
+  const newToken = await attemptSilentRefresh();
+  isRefreshing = false;
+  setAccessToken(newToken);
+  drainQueue(newToken);
+  return retryWithNewToken(url, init, headers, newToken, response);
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: FetchOptions = {},
@@ -72,40 +108,7 @@ export async function apiFetch<T = unknown>(
   });
 
   if (response.status === 401 && !skipAuth) {
-    if (isRefreshing) {
-      const newToken = await new Promise<string | null>((resolve) => {
-        refreshQueue.push(resolve);
-      });
-      if (newToken) {
-        headers.set('Authorization', `Bearer ${newToken}`);
-        response = await fetch(url, {
-          ...init,
-          credentials: 'include',
-          headers,
-        });
-      } else {
-        const errorPayload = await safeJson(response);
-        throw normaliseError(response.status, errorPayload);
-      }
-    } else {
-      isRefreshing = true;
-      const newToken = await attemptSilentRefresh();
-      isRefreshing = false;
-      setAccessToken(newToken);
-      drainQueue(newToken);
-
-      if (newToken) {
-        headers.set('Authorization', `Bearer ${newToken}`);
-        response = await fetch(url, {
-          ...init,
-          credentials: 'include',
-          headers,
-        });
-      } else {
-        const errorPayload = await safeJson(response);
-        throw normaliseError(response.status, errorPayload);
-      }
-    }
+    response = await handleUnauthorized(url, init, headers, response);
   }
 
   if (!response.ok) {

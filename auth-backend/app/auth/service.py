@@ -1,7 +1,6 @@
 import hashlib
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 import bcrypt
 import jwt
@@ -199,7 +198,7 @@ class AuthService:
     # login
     # ------------------------------------------------------------------
     async def login(
-        self, body: LoginRequest, request: Request, response: Response
+        self, body: LoginRequest, response: Response
     ) -> LoginResponse:
         invalid_exc = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -227,7 +226,9 @@ class AuthService:
         access_token = _create_access_token(user["id"], user["email"])
         raw_refresh = _create_refresh_token()
         token_hash = _sha256(raw_refresh)
-        expire_days = REFRESH_TOKEN_REMEMBER_DAYS if remember_me else REFRESH_TOKEN_EXPIRE_DAYS
+        expire_days = (
+            REFRESH_TOKEN_REMEMBER_DAYS if remember_me else REFRESH_TOKEN_EXPIRE_DAYS
+        )
         expires_at = now + timedelta(days=expire_days)
         _refresh_tokens[token_hash] = {
             "id": token_hash[:16],
@@ -323,7 +324,9 @@ class AuthService:
         new_raw_refresh = _create_refresh_token()
         new_token_hash = _sha256(new_raw_refresh)
         remember_me: bool = record.get("remember_me", False)
-        expire_days = REFRESH_TOKEN_REMEMBER_DAYS if remember_me else REFRESH_TOKEN_EXPIRE_DAYS
+        expire_days = (
+            REFRESH_TOKEN_REMEMBER_DAYS if remember_me else REFRESH_TOKEN_EXPIRE_DAYS
+        )
         new_expires_at = now + timedelta(days=expire_days)
         _refresh_tokens[new_token_hash] = {
             "id": new_token_hash[:16],
@@ -343,10 +346,10 @@ class AuthService:
         )
 
     # ------------------------------------------------------------------
-    # forgotPassword
+    # forgot_password
     # ------------------------------------------------------------------
-    async def forgotPassword(
-        self, body: ForgotPasswordRequest, request: Request
+    async def forgot_password(
+        self, body: ForgotPasswordRequest
     ) -> ForgotPasswordResponse:
         # Enumeration-resistant: always return the same response
         user = _users.get(body.email)
@@ -372,9 +375,9 @@ class AuthService:
         )
 
     # ------------------------------------------------------------------
-    # resetPassword
+    # reset_password
     # ------------------------------------------------------------------
-    async def resetPassword(
+    async def reset_password(
         self, body: ResetPasswordRequest
     ) -> ResetPasswordResponse:
         token_hash = _sha256(body.token)
@@ -436,7 +439,7 @@ class AuthService:
     # me
     # ------------------------------------------------------------------
     async def me(self, request: Request) -> MeResponse:
-        auth_header: Optional[str] = request.headers.get("Authorization")
+        auth_header: str | None = request.headers.get("Authorization")
         if auth_header is None or not auth_header.startswith("Bearer "):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -478,7 +481,7 @@ class AuthService:
     # logout
     # ------------------------------------------------------------------
     async def logout(
-        self, refresh_token: Optional[str], response: Response
+        self, refresh_token: str | None, response: Response
     ) -> LogoutResponse:
         if refresh_token is not None:
             token_hash = _sha256(refresh_token)

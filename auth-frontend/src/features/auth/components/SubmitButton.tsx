@@ -1,9 +1,9 @@
 import React from 'react';
 
 interface SubmitButtonProps {
-  label: string;
-  isLoading?: boolean;
-  disabled?: boolean;
+  readonly label: string;
+  readonly isLoading?: boolean;
+  readonly disabled?: boolean;
 }
 
 function SubmitButton({

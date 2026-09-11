@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
-from typing import Optional
+from typing import Annotated
 
 from app.auth.schemas import (
     ForgotPasswordRequest,
@@ -32,7 +32,7 @@ def get_auth_service() -> AuthService:
 async def register(
     body: RegisterRequest,
     response: Response,
-    service: AuthService = Depends(get_auth_service),
+    service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> RegisterResponse:
     return await service.register(body, response)
 
@@ -47,9 +47,9 @@ async def login(
     body: LoginRequest,
     request: Request,
     response: Response,
-    service: AuthService = Depends(get_auth_service),
+    service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> LoginResponse:
-    return await service.login(body, request, response)
+    return await service.login(body, response)
 
 
 @router.post(
@@ -60,7 +60,7 @@ async def login(
 )
 async def refresh(
     response: Response,
-    refresh_token: Optional[str] = Cookie(default=None, alias="refresh_token"),
+    refresh_token: str | None = Cookie(default=None, alias="refresh_token"),
     service: AuthService = Depends(get_auth_service),
 ) -> RefreshResponse:
     if refresh_token is None:
@@ -83,12 +83,12 @@ async def refresh(
     status_code=status.HTTP_202_ACCEPTED,
     operation_id="forgotPassword",
 )
-async def forgotPassword(
+async def forgot_password(
     body: ForgotPasswordRequest,
     request: Request,
-    service: AuthService = Depends(get_auth_service),
+    service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> ForgotPasswordResponse:
-    return await service.forgotPassword(body, request)
+    return await service.forgot_password(body)
 
 
 @router.post(
@@ -97,11 +97,11 @@ async def forgotPassword(
     status_code=status.HTTP_200_OK,
     operation_id="resetPassword",
 )
-async def resetPassword(
+async def reset_password(
     body: ResetPasswordRequest,
-    service: AuthService = Depends(get_auth_service),
+    service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> ResetPasswordResponse:
-    return await service.resetPassword(body)
+    return await service.reset_password(body)
 
 
 @router.get(
@@ -112,7 +112,7 @@ async def resetPassword(
 )
 async def me(
     request: Request,
-    service: AuthService = Depends(get_auth_service),
+    service: Annotated[AuthService, Depends(get_auth_service)],
 ) -> MeResponse:
     return await service.me(request)
 
@@ -125,7 +125,7 @@ async def me(
 )
 async def logout(
     response: Response,
-    refresh_token: Optional[str] = Cookie(default=None, alias="refresh_token"),
+    refresh_token: str | None = Cookie(default=None, alias="refresh_token"),
     service: AuthService = Depends(get_auth_service),
 ) -> LogoutResponse:
     return await service.logout(refresh_token, response)

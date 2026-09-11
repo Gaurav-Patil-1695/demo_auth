@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -9,5 +8,5 @@ class PasswordReset(BaseModel):
     user_id: str
     token_hash: str
     expires_at: datetime
-    used_at: Optional[datetime] = None
+    used_at: datetime | None = None
     created_at: datetime

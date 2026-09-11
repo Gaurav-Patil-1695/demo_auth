@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 interface RequireAuthProps {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }
 
 export function RequireAuth({ children }: RequireAuthProps): JSX.Element {

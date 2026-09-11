@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
 
 
 # ---------------------------------------------------------------------------
@@ -12,7 +11,7 @@ PASSWORD_MIN_LENGTH = 8
 PASSWORD_REQUIRE_UPPERCASE = True
 PASSWORD_REQUIRE_LOWERCASE = True
 PASSWORD_REQUIRE_NUMBER = True
-PASSWORD_REQUIRE_SPECIAL = False  # require_special_character=false
+PASSWORD_REQUIRE_SPECIAL = False
 
 
 # ---------------------------------------------------------------------------

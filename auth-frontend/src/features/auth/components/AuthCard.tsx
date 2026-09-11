@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface AuthCardProps {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }
 
 function AuthCard({ children }: AuthCardProps): JSX.Element {

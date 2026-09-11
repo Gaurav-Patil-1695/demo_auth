@@ -19,7 +19,8 @@ def _build_plain_text_body(reset_link: str) -> str:
         "Click the link below to reset your password:\n"
         f"{reset_link}\n\n"
         "This link will expire in 60 minutes.\n\n"
-        "If you did not request a password reset, you can safely ignore this email."
+        "If you did not request a password reset, "
+        "you can safely ignore this email."
     )
 
 
@@ -32,7 +33,8 @@ def _build_html_body(reset_link: str) -> str:
         "<p>Click the link below to reset your password:</p>"
         f'<p><a href=\"{reset_link}\">Reset my password</a></p>'
         "<p>This link will expire in 60 minutes.</p>"
-        "<p>If you did not request a password reset, you can safely ignore this email.</p>"
+        "<p>If you did not request a password reset, "
+        "you can safely ignore this email.</p>"
         "</body>"
         "</html>"
     )
@@ -63,10 +65,7 @@ async def send_password_reset_email(email: str, raw_token: str) -> None:
     message.attach(plain_part)
     message.attach(html_part)
 
-    if settings.SMTP_TLS:
-        smtp_cls = smtplib.SMTP_SSL
-    else:
-        smtp_cls = smtplib.SMTP  # type: ignore[assignment]
+    smtp_cls = smtplib.SMTP_SSL if settings.SMTP_TLS else smtplib.SMTP  # type: ignore[assignment]
 
     with smtp_cls(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
         if not settings.SMTP_TLS and settings.SMTP_STARTTLS:

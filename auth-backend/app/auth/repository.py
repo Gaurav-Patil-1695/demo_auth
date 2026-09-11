@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
-
-from app.models.password_reset import PasswordReset
 
 
 # ---------------------------------------------------------------------------
@@ -16,9 +13,12 @@ from app.models.password_reset import PasswordReset
 async def get_user_by_id(
     conn: AsyncConnection,
     user_id: int,
-) -> Optional[dict]:
+) -> dict | None:
     result = await conn.execute(
-        text("SELECT id, full_name, email, password_hash, is_active, created_at, updated_at FROM users WHERE id = :id"),
+        text(
+            "SELECT id, full_name, email, password_hash, is_active, "
+            "created_at, updated_at FROM users WHERE id = :id"
+        ),
         {"id": user_id},
     )
     row = result.mappings().first()
@@ -28,7 +28,7 @@ async def get_user_by_id(
 async def get_user_by_email(
     conn: AsyncConnection,
     email: str,
-) -> Optional[dict]:
+) -> dict | None:
     result = await conn.execute(
         text(
             "SELECT id, full_name, email, password_hash, is_active, created_at, updated_at "
@@ -50,7 +50,8 @@ async def create_user(
         text(
             "INSERT INTO users (full_name, email, password_hash, is_active) "
             "VALUES (:full_name, :email, :password_hash, TRUE) "
-            "RETURNING id, full_name, email, password_hash, is_active, created_at, updated_at"
+            "RETURNING id, full_name, email, password_hash, "
+            "is_active, created_at, updated_at"
         ),
         {"full_name": full_name, "email": email, "password_hash": password_hash},
     )
@@ -97,7 +98,7 @@ async def create_password_reset(
 async def get_password_reset_by_token_hash(
     conn: AsyncConnection,
     token_hash: str,
-) -> Optional[dict]:
+) -> dict | None:
     result = await conn.execute(
         text(
             "SELECT id, user_id, token_hash, expires_at, used_at, created_at "
@@ -152,7 +153,8 @@ async def create_refresh_token(
         text(
             "INSERT INTO refresh_tokens (user_id, token_hash, expires_at, remember_me) "
             "VALUES (:user_id, :token_hash, :expires_at, :remember_me) "
-            "RETURNING id, user_id, token_hash, expires_at, revoked_at, remember_me, created_at"
+            "RETURNING id, user_id, token_hash, expires_at, "
+            "revoked_at, remember_me, created_at"
         ),
         {
             "user_id": user_id,
@@ -168,10 +170,11 @@ async def create_refresh_token(
 async def get_refresh_token_by_token_hash(
     conn: AsyncConnection,
     token_hash: str,
-) -> Optional[dict]:
+) -> dict | None:
     result = await conn.execute(
         text(
-            "SELECT id, user_id, token_hash, expires_at, revoked_at, remember_me, created_at "
+            "SELECT id, user_id, token_hash, expires_at, revoked_at, "
+            "remember_me, created_at "
             "FROM refresh_tokens "
             "WHERE token_hash = :token_hash"
         ),
