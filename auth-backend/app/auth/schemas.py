@@ -1,28 +1,33 @@
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
+from pydantic import BaseModel
+from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, EmailStr
+
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    details: Dict[str, Any] = {}
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorDetail
 
 
 class RegisterRequest(BaseModel):
     full_name: str
-    email: EmailStr
+    email: str
     password: str
     confirm_password: str
 
 
 class RegisterResponse(BaseModel):
-    id: UUID
+    id: str
     full_name: str
-    email: EmailStr
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    email: str
+    created_at: str
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     remember_me: Optional[bool] = None
 
@@ -30,10 +35,11 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    email: str
 
 
 class ForgotPasswordResponse(BaseModel):
@@ -51,26 +57,17 @@ class ResetPasswordResponse(BaseModel):
 
 
 class MeResponse(BaseModel):
-    id: UUID
+    id: str
     full_name: str
-    email: EmailStr
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-
-class LogoutRequest(BaseModel):
-    refresh_token: Optional[str] = None
+    email: str
+    created_at: str
 
 
 class LogoutResponse(BaseModel):
     message: str
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: Optional[str] = None
-
-
 class RefreshResponse(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int

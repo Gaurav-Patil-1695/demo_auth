@@ -1,24 +1,29 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from app.auth.schemas import (
-    LoginRequest,
-    LoginResponse,
-    RegisterRequest,
-    RegisterResponse,
+    ErrorResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
+    LoginRequest,
+    LoginResponse,
+    MeResponse,
+    RefreshResponse,
+    RegisterRequest,
+    RegisterResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
-    MeResponse,
-    LogoutRequest,
     LogoutResponse,
-    RefreshRequest,
-    RefreshResponse,
 )
 from app.auth.service import AuthService
-from app.core.dependencies import get_auth_service, get_current_user
-from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_auth_service() -> AuthService:
+    return AuthService()
 
 
 @router.post(
@@ -81,16 +86,15 @@ async def resetPassword(
     operation_id="me",
 )
 async def me(
-    current_user: User = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    service: AuthService = Depends(get_auth_service),
 ) -> MeResponse:
-    return MeResponse(
-        id=current_user.id,
-        full_name=current_user.full_name,
-        email=current_user.email,
-        is_active=current_user.is_active,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at,
-    )
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return await service.me(credentials.credentials)
 
 
 @router.post(
@@ -100,11 +104,19 @@ async def me(
     operation_id="logout",
 )
 async def logout(
-    body: LogoutRequest,
+    request: Request,
     response: Response,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     service: AuthService = Depends(get_auth_service),
 ) -> LogoutResponse:
-    return await service.logout(body, response)
+    token = credentials.credentials if credentials is not None else None
+    refresh_token = request.cookies.get("refresh_token")
+    result = await service.logout(
+        access_token=token,
+        refresh_token=refresh_token,
+        response=response,
+    )
+    return result
 
 
 @router.post(
@@ -114,8 +126,9 @@ async def logout(
     operation_id="refresh",
 )
 async def refresh(
-    body: RefreshRequest,
+    request: Request,
     response: Response,
     service: AuthService = Depends(get_auth_service),
 ) -> RefreshResponse:
-    return await service.refresh(body, response)
+    refresh_token = request.cookies.get("refresh_token")
+    return await service.refresh(refresh_token=refresh_token, response=response)
