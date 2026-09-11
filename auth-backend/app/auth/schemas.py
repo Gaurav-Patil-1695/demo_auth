@@ -1,6 +1,26 @@
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
+
+
+# ---------------------------------------------------------------------------
+# Shared / error envelope
+# ---------------------------------------------------------------------------
+
+
+class ErrorDetail(BaseModel):
+    field: Optional[str] = None
+    message: str
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    details: List[ErrorDetail] = Field(default_factory=list)
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorBody
 
 
 # ---------------------------------------------------------------------------
@@ -11,12 +31,12 @@ from pydantic import BaseModel, EmailStr, Field
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    remember_me: bool = False
+    rememberMe: bool = False
 
 
 class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    accessToken: str
+    tokenType: str = "bearer"
 
 
 # ---------------------------------------------------------------------------
@@ -25,21 +45,19 @@ class LoginResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    full_name: str = Field(..., min_length=1)
+    fullName: str = Field(..., min_length=1)
     email: EmailStr
     password: str
-    confirm_password: str
-    terms: bool
+    confirmPassword: str
+    acceptTerms: bool
 
 
 class RegisterResponse(BaseModel):
-    id: int
-    full_name: str
-    email: str
+    message: str
 
 
 # ---------------------------------------------------------------------------
-# Forgot Password
+# Forgot password
 # ---------------------------------------------------------------------------
 
 
@@ -52,14 +70,14 @@ class ForgotPasswordResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Reset Password
+# Reset password
 # ---------------------------------------------------------------------------
 
 
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str
-    confirm_password: str
+    confirmPassword: str
 
 
 class ResetPasswordResponse(BaseModel):
@@ -72,10 +90,11 @@ class ResetPasswordResponse(BaseModel):
 
 
 class MeResponse(BaseModel):
-    id: int
-    full_name: str
+    id: str
+    fullName: str
     email: str
-    is_active: bool
+    isActive: bool
+    createdAt: str
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +103,7 @@ class MeResponse(BaseModel):
 
 
 class LogoutRequest(BaseModel):
-    refresh_token: Optional[str] = None
+    pass
 
 
 class LogoutResponse(BaseModel):
@@ -96,25 +115,6 @@ class LogoutResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: Optional[str] = None
-
-
 class RefreshResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-# ---------------------------------------------------------------------------
-# Shared error envelope
-# ---------------------------------------------------------------------------
-
-
-class ErrorDetail(BaseModel):
-    code: str
-    message: str
-    details: Optional[dict] = None
-
-
-class ErrorResponse(BaseModel):
-    error: ErrorDetail
+    accessToken: str
+    tokenType: str = "bearer"
