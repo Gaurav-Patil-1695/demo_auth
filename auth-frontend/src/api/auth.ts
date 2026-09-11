@@ -1,101 +1,149 @@
-import axios from 'axios';
+const API_BASE = process.env.REACT_APP_API_URL ?? 'http://localhost:8000';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000',
-  withCredentials: true,
-});
+export interface UserDto {
+  id: string;
+  full_name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface LoginRequest {
   email: string;
   password: string;
-  rememberMe?: boolean;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  user: UserProfile;
+  remember_me?: boolean;
 }
 
 export interface RegisterRequest {
-  fullName: string;
+  full_name: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-}
-
-export interface RegisterResponse {
-  accessToken: string;
-  user: UserProfile;
-}
-
-export interface UserProfile {
-  id: string;
-  fullName: string;
-  email: string;
-  isActive: boolean;
-  createdAt: string;
+  confirm_password: string;
 }
 
 export interface ForgotPasswordRequest {
   email: string;
 }
 
-export interface ForgotPasswordResponse {
-  message: string;
-}
-
 export interface ResetPasswordRequest {
   token: string;
   password: string;
-  confirmPassword: string;
+  confirm_password: string;
 }
 
-export interface ResetPasswordResponse {
-  message: string;
+export interface AuthTokens {
+  access_token: string;
+  token_type: string;
 }
 
-export interface RefreshResponse {
-  accessToken: string;
+export interface ApiError {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, string[]>;
+  };
 }
 
-export interface LogoutResponse {
-  message: string;
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string> | undefined),
+  };
+
+  const accessToken = localStorage.getItem('access_token');
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorBody: ApiError;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = {
+        error: {
+          code: 'UNKNOWN_ERROR',
+          message: 'An unexpected error occurred.',
+        },
+      };
+    }
+    throw errorBody;
+  }
+
+  if (response.status === 204) {
+    return undefined as unknown as T;
+  }
+
+  return response.json() as Promise<T>;
 }
 
-export async function login(data: LoginRequest): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>('/auth/login', data);
-  return response.data;
+export async function login(data: LoginRequest): Promise<AuthTokens> {
+  const tokens = await request<AuthTokens>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  localStorage.setItem('access_token', tokens.access_token);
+  return tokens;
 }
 
-export async function register(data: RegisterRequest): Promise<RegisterResponse> {
-  const response = await api.post<RegisterResponse>('/auth/register', data);
-  return response.data;
+export async function register(data: RegisterRequest): Promise<AuthTokens> {
+  const tokens = await request<AuthTokens>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  localStorage.setItem('access_token', tokens.access_token);
+  return tokens;
 }
 
-export async function forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
-  const response = await api.post<ForgotPasswordResponse>('/auth/forgot-password', data);
-  return response.data;
+export async function forgotPassword(
+  data: ForgotPasswordRequest,
+): Promise<void> {
+  await request<void>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function resetPassword(data: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-  const response = await api.post<ResetPasswordResponse>('/auth/reset-password', data);
-  return response.data;
+export async function resetPassword(
+  data: ResetPasswordRequest,
+): Promise<void> {
+  await request<void>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function me(): Promise<UserProfile> {
-  const response = await api.get<UserProfile>('/auth/me');
-  return response.data;
+export async function me(): Promise<UserDto> {
+  return request<UserDto>('/auth/me', {
+    method: 'GET',
+  });
 }
 
-export async function logout(): Promise<LogoutResponse> {
-  const response = await api.post<LogoutResponse>('/auth/logout');
-  return response.data;
+export async function logout(): Promise<void> {
+  try {
+    await request<void>('/auth/logout', {
+      method: 'POST',
+    });
+  } finally {
+    localStorage.removeItem('access_token');
+  }
 }
 
-export async function refresh(): Promise<RefreshResponse> {
-  const response = await api.post<RefreshResponse>('/auth/refresh');
-  return response.data;
+export async function refresh(): Promise<AuthTokens> {
+  const tokens = await request<AuthTokens>('/auth/refresh', {
+    method: 'POST',
+  });
+  localStorage.setItem('access_token', tokens.access_token);
+  return tokens;
 }
-
-export default api;
