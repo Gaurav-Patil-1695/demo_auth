@@ -1,34 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Response, status
 
 from app.auth.schemas import (
-    RegisterRequest,
-    RegisterResponse,
     LoginRequest,
     LoginResponse,
+    RegisterRequest,
+    RegisterResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
     MeResponse,
+    LogoutRequest,
     LogoutResponse,
+    RefreshRequest,
     RefreshResponse,
 )
-from app.auth.service import AuthService, get_auth_service
+from app.auth.service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-@router.post(
-    "/register",
-    response_model=RegisterResponse,
-    status_code=status.HTTP_201_CREATED,
-    operation_id="register",
-)
-async def register(
-    payload: RegisterRequest,
-    service: AuthService = Depends(get_auth_service),
-) -> RegisterResponse:
-    return await service.register(payload)
+_service = AuthService()
 
 
 @router.post(
@@ -37,11 +27,18 @@ async def register(
     status_code=status.HTTP_200_OK,
     operation_id="login",
 )
-async def login(
-    payload: LoginRequest,
-    service: AuthService = Depends(get_auth_service),
-) -> LoginResponse:
-    return await service.login(payload)
+async def login(payload: LoginRequest, response: Response) -> LoginResponse:
+    return await _service.login(payload, response)
+
+
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="register",
+)
+async def register(payload: RegisterRequest) -> RegisterResponse:
+    return await _service.register(payload)
 
 
 @router.post(
@@ -50,11 +47,8 @@ async def login(
     status_code=status.HTTP_202_ACCEPTED,
     operation_id="forgotPassword",
 )
-async def forgot_password(
-    payload: ForgotPasswordRequest,
-    service: AuthService = Depends(get_auth_service),
-) -> ForgotPasswordResponse:
-    return await service.forgot_password(payload)
+async def forgotPassword(payload: ForgotPasswordRequest) -> ForgotPasswordResponse:
+    return await _service.forgotPassword(payload)
 
 
 @router.post(
@@ -63,11 +57,8 @@ async def forgot_password(
     status_code=status.HTTP_200_OK,
     operation_id="resetPassword",
 )
-async def reset_password(
-    payload: ResetPasswordRequest,
-    service: AuthService = Depends(get_auth_service),
-) -> ResetPasswordResponse:
-    return await service.reset_password(payload)
+async def resetPassword(payload: ResetPasswordRequest) -> ResetPasswordResponse:
+    return await _service.resetPassword(payload)
 
 
 @router.get(
@@ -76,10 +67,8 @@ async def reset_password(
     status_code=status.HTTP_200_OK,
     operation_id="me",
 )
-async def me(
-    service: AuthService = Depends(get_auth_service),
-) -> MeResponse:
-    return await service.me()
+async def me() -> MeResponse:
+    return await _service.me()
 
 
 @router.post(
@@ -88,10 +77,8 @@ async def me(
     status_code=status.HTTP_200_OK,
     operation_id="logout",
 )
-async def logout(
-    service: AuthService = Depends(get_auth_service),
-) -> LogoutResponse:
-    return await service.logout()
+async def logout(payload: LogoutRequest, response: Response) -> LogoutResponse:
+    return await _service.logout(payload, response)
 
 
 @router.post(
@@ -100,7 +87,5 @@ async def logout(
     status_code=status.HTTP_200_OK,
     operation_id="refresh",
 )
-async def refresh(
-    service: AuthService = Depends(get_auth_service),
-) -> RefreshResponse:
-    return await service.refresh()
+async def refresh(payload: RefreshRequest, response: Response) -> RefreshResponse:
+    return await _service.refresh(payload, response)
