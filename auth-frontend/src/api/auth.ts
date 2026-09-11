@@ -1,19 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:8000';
-
-export interface RegisterRequest {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-export interface RegisterResponse {
-  id: string;
-  fullName: string;
-  email: string;
-  isActive: boolean;
-  createdAt: string;
-}
+const API_BASE = '/api';
 
 export interface LoginRequest {
   email: string;
@@ -24,25 +9,29 @@ export interface LoginRequest {
 export interface LoginResponse {
   accessToken: string;
   tokenType: string;
-  user: {
-    id: string;
-    fullName: string;
-    email: string;
-    isActive: boolean;
-    createdAt: string;
-  };
+  user: UserResponse;
 }
 
-export interface MeResponse {
-  id: string;
+export interface RegisterRequest {
   fullName: string;
   email: string;
-  isActive: boolean;
-  createdAt: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+}
+
+export interface RegisterResponse {
+  accessToken: string;
+  tokenType: string;
+  user: UserResponse;
 }
 
 export interface ForgotPasswordRequest {
   email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
 }
 
 export interface ResetPasswordRequest {
@@ -51,34 +40,38 @@ export interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+export interface UserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RefreshResponse {
   accessToken: string;
   tokenType: string;
 }
 
-export interface ApiError {
-  error: {
-    code: string;
-    message: string;
-    details?: Record<string, string[]>;
-  };
+export interface LogoutResponse {
+  message: string;
 }
 
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  accessToken?: string,
 ): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     credentials: 'include',
@@ -86,16 +79,13 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    let errorMessage = `Request failed with status ${response.status}`;
+    let errorData: unknown;
     try {
-      const errorData: ApiError = await response.json();
-      if (errorData.error?.message) {
-        errorMessage = errorData.error.message;
-      }
+      errorData = await response.json();
     } catch {
-      // ignore parse errors; use the default message
+      errorData = { error: { code: 'UNKNOWN', message: response.statusText } };
     }
-    throw new Error(errorMessage);
+    throw errorData;
   }
 
   if (response.status === 204) {
@@ -105,45 +95,34 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
-export async function register(data: RegisterRequest): Promise<RegisterResponse> {
-  return request<RegisterResponse>('POST', '/auth/register', {
-    full_name: data.fullName,
-    email: data.email,
-    password: data.password,
-    confirm_password: data.confirmPassword,
-  });
-}
-
 export async function login(data: LoginRequest): Promise<LoginResponse> {
-  return request<LoginResponse>('POST', '/auth/login', {
-    email: data.email,
-    password: data.password,
-    remember_me: data.rememberMe ?? false,
-  });
+  return request<LoginResponse>('POST', '/auth/login', data);
 }
 
-export async function me(accessToken: string): Promise<MeResponse> {
-  return request<MeResponse>('GET', '/auth/me', undefined, accessToken);
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  return request<RegisterResponse>('POST', '/auth/register', data);
 }
 
-export async function logout(accessToken: string): Promise<void> {
-  return request<void>('POST', '/auth/logout', undefined, accessToken);
+export async function forgotPassword(
+  data: ForgotPasswordRequest,
+): Promise<ForgotPasswordResponse> {
+  return request<ForgotPasswordResponse>('POST', '/auth/forgot-password', data);
+}
+
+export async function resetPassword(
+  data: ResetPasswordRequest,
+): Promise<ResetPasswordResponse> {
+  return request<ResetPasswordResponse>('POST', '/auth/reset-password', data);
+}
+
+export async function me(): Promise<UserResponse> {
+  return request<UserResponse>('GET', '/auth/me');
+}
+
+export async function logout(): Promise<LogoutResponse> {
+  return request<LogoutResponse>('POST', '/auth/logout');
 }
 
 export async function refresh(): Promise<RefreshResponse> {
   return request<RefreshResponse>('POST', '/auth/refresh');
-}
-
-export async function forgotPassword(data: ForgotPasswordRequest): Promise<void> {
-  return request<void>('POST', '/auth/forgot-password', {
-    email: data.email,
-  });
-}
-
-export async function resetPassword(data: ResetPasswordRequest): Promise<void> {
-  return request<void>('POST', '/auth/reset-password', {
-    token: data.token,
-    password: data.password,
-    confirm_password: data.confirmPassword,
-  });
 }
