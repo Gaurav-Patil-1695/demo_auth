@@ -1,64 +1,35 @@
-from typing import List, Optional
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
-
-
-# ---------------------------------------------------------------------------
-# Shared / error envelope
-# ---------------------------------------------------------------------------
+from pydantic import BaseModel, EmailStr
 
 
-class ErrorDetail(BaseModel):
-    field: Optional[str] = None
-    message: str
+class RegisterRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+    confirm_password: str
 
 
-class ErrorBody(BaseModel):
-    code: str
-    message: str
-    details: List[ErrorDetail] = Field(default_factory=list)
-
-
-class ErrorResponse(BaseModel):
-    error: ErrorBody
-
-
-# ---------------------------------------------------------------------------
-# Login
-# ---------------------------------------------------------------------------
+class RegisterResponse(BaseModel):
+    id: UUID
+    full_name: str
+    email: EmailStr
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-    rememberMe: bool = False
+    remember_me: Optional[bool] = None
 
 
 class LoginResponse(BaseModel):
-    accessToken: str
-    tokenType: str = "bearer"
-
-
-# ---------------------------------------------------------------------------
-# Register
-# ---------------------------------------------------------------------------
-
-
-class RegisterRequest(BaseModel):
-    fullName: str = Field(..., min_length=1)
-    email: EmailStr
-    password: str
-    confirmPassword: str
-    acceptTerms: bool
-
-
-class RegisterResponse(BaseModel):
-    message: str
-
-
-# ---------------------------------------------------------------------------
-# Forgot password
-# ---------------------------------------------------------------------------
+    access_token: str
+    token_type: str
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -69,52 +40,37 @@ class ForgotPasswordResponse(BaseModel):
     message: str
 
 
-# ---------------------------------------------------------------------------
-# Reset password
-# ---------------------------------------------------------------------------
-
-
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str
-    confirmPassword: str
+    confirm_password: str
 
 
 class ResetPasswordResponse(BaseModel):
     message: str
 
 
-# ---------------------------------------------------------------------------
-# Me
-# ---------------------------------------------------------------------------
-
-
 class MeResponse(BaseModel):
-    id: str
-    fullName: str
-    email: str
-    isActive: bool
-    createdAt: str
-
-
-# ---------------------------------------------------------------------------
-# Logout
-# ---------------------------------------------------------------------------
+    id: UUID
+    full_name: str
+    email: EmailStr
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
 
 
 class LogoutRequest(BaseModel):
-    pass
+    refresh_token: Optional[str] = None
 
 
 class LogoutResponse(BaseModel):
     message: str
 
 
-# ---------------------------------------------------------------------------
-# Refresh
-# ---------------------------------------------------------------------------
+class RefreshRequest(BaseModel):
+    refresh_token: Optional[str] = None
 
 
 class RefreshResponse(BaseModel):
-    accessToken: str
-    tokenType: str = "bearer"
+    access_token: str
+    token_type: str

@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from app.auth.schemas import (
     LoginRequest,
     LoginResponse,
@@ -13,18 +11,27 @@ from app.auth.schemas import (
     MeResponse,
     LogoutRequest,
     LogoutResponse,
+    RefreshRequest,
     RefreshResponse,
-    ErrorResponse,
 )
 from app.auth.service import AuthService
+from app.core.dependencies import get_auth_service, get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-bearer_scheme = HTTPBearer(auto_error=False)
 
-
-def get_auth_service() -> AuthService:
-    return AuthService()
+@router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="register",
+)
+async def register(
+    body: RegisterRequest,
+    service: AuthService = Depends(get_auth_service),
+) -> RegisterResponse:
+    return await service.register(body)
 
 
 @router.post(
@@ -39,19 +46,6 @@ async def login(
     service: AuthService = Depends(get_auth_service),
 ) -> LoginResponse:
     return await service.login(body, response)
-
-
-@router.post(
-    "/register",
-    response_model=RegisterResponse,
-    status_code=status.HTTP_201_CREATED,
-    operation_id="register",
-)
-async def register(
-    body: RegisterRequest,
-    service: AuthService = Depends(get_auth_service),
-) -> RegisterResponse:
-    return await service.register(body)
 
 
 @router.post(
@@ -87,21 +81,16 @@ async def resetPassword(
     operation_id="me",
 )
 async def me(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    service: AuthService = Depends(get_auth_service),
+    current_user: User = Depends(get_current_user),
 ) -> MeResponse:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": "UNAUTHORIZED",
-                    "message": "Authentication required.",
-                    "details": [],
-                }
-            },
-        )
-    return await service.me(credentials.credentials)
+    return MeResponse(
+        id=current_user.id,
+        full_name=current_user.full_name,
+        email=current_user.email,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+    )
 
 
 @router.post(
@@ -111,13 +100,11 @@ async def me(
     operation_id="logout",
 )
 async def logout(
-    request: Request,
+    body: LogoutRequest,
     response: Response,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     service: AuthService = Depends(get_auth_service),
 ) -> LogoutResponse:
-    token = credentials.credentials if credentials else None
-    return await service.logout(token, request, response)
+    return await service.logout(body, response)
 
 
 @router.post(
@@ -127,8 +114,8 @@ async def logout(
     operation_id="refresh",
 )
 async def refresh(
-    request: Request,
+    body: RefreshRequest,
     response: Response,
     service: AuthService = Depends(get_auth_service),
 ) -> RefreshResponse:
-    return await service.refresh(request, response)
+    return await service.refresh(body, response)
