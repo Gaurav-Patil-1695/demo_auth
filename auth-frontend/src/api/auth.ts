@@ -1,51 +1,36 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
-  rememberMe: boolean;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  user: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
-}
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL ?? 'http://localhost:8000';
 
 export interface RegisterRequest {
   fullName: string;
   email: string;
   password: string;
   confirmPassword: string;
-  termsAccepted: boolean;
 }
 
 export interface RegisterResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface LoginResponse {
   accessToken: string;
+  tokenType: string;
   user: {
     id: string;
     fullName: string;
     email: string;
+    isActive: boolean;
+    createdAt: string;
   };
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ForgotPasswordResponse {
-  message: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  password: string;
-  confirmPassword: string;
-}
-
-export interface ResetPasswordResponse {
-  message: string;
 }
 
 export interface MeResponse {
@@ -54,99 +39,111 @@ export interface MeResponse {
   email: string;
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
-export interface LogoutResponse {
-  message: string;
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
 }
 
 export interface RefreshResponse {
   accessToken: string;
+  tokenType: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+export interface ApiError {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, string[]>;
+  };
+}
 
-async function request<T>(path: string, options: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-  const response = await fetch(url, {
-    ...options,
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  accessToken?: string,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   if (!response.ok) {
-    let message: string;
+    let errorMessage = `Request failed with status ${response.status}`;
     try {
-      const body = await response.json();
-      message =
-        body?.error?.message ??
-        body?.detail ??
-        'Invalid email or password.';
+      const errorData: ApiError = await response.json();
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+      }
     } catch {
-      message = 'Invalid email or password.';
+      // ignore parse errors; use the default message
     }
-    throw new Error(message);
+    throw new Error(errorMessage);
   }
 
-  const text = await response.text();
-  if (!text) {
+  if (response.status === 204) {
     return undefined as unknown as T;
   }
-  return JSON.parse(text) as T;
+
+  return response.json() as Promise<T>;
 }
 
-export async function login(payload: LoginRequest): Promise<LoginResponse> {
-  return request<LoginResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(payload),
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  return request<RegisterResponse>('POST', '/auth/register', {
+    full_name: data.fullName,
+    email: data.email,
+    password: data.password,
+    confirm_password: data.confirmPassword,
   });
 }
 
-export async function register(payload: RegisterRequest): Promise<RegisterResponse> {
-  return request<RegisterResponse>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify(payload),
+export async function login(data: LoginRequest): Promise<LoginResponse> {
+  return request<LoginResponse>('POST', '/auth/login', {
+    email: data.email,
+    password: data.password,
+    remember_me: data.rememberMe ?? false,
   });
 }
 
-export async function forgotPassword(
-  payload: ForgotPasswordRequest,
-): Promise<ForgotPasswordResponse> {
-  return request<ForgotPasswordResponse>('/auth/forgot-password', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+export async function me(accessToken: string): Promise<MeResponse> {
+  return request<MeResponse>('GET', '/auth/me', undefined, accessToken);
 }
 
-export async function resetPassword(
-  payload: ResetPasswordRequest,
-): Promise<ResetPasswordResponse> {
-  return request<ResetPasswordResponse>('/auth/reset-password', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function me(): Promise<MeResponse> {
-  return request<MeResponse>('/auth/me', {
-    method: 'GET',
-  });
-}
-
-export async function logout(): Promise<LogoutResponse> {
-  return request<LogoutResponse>('/auth/logout', {
-    method: 'POST',
-    body: JSON.stringify({}),
-  });
+export async function logout(accessToken: string): Promise<void> {
+  return request<void>('POST', '/auth/logout', undefined, accessToken);
 }
 
 export async function refresh(): Promise<RefreshResponse> {
-  return request<RefreshResponse>('/auth/refresh', {
-    method: 'POST',
-    body: JSON.stringify({}),
+  return request<RefreshResponse>('POST', '/auth/refresh');
+}
+
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<void> {
+  return request<void>('POST', '/auth/forgot-password', {
+    email: data.email,
+  });
+}
+
+export async function resetPassword(data: ResetPasswordRequest): Promise<void> {
+  return request<void>('POST', '/auth/reset-password', {
+    token: data.token,
+    password: data.password,
+    confirm_password: data.confirmPassword,
   });
 }
