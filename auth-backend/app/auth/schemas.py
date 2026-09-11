@@ -1,35 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
 
 # ---------------------------------------------------------------------------
-# Shared / envelope
+# Shared
 # ---------------------------------------------------------------------------
-
-
-class ErrorDetail(BaseModel):
-    code: str
-    message: str
-    details: Dict[str, Any] = Field(default_factory=dict)
-
-
-class ErrorResponse(BaseModel):
-    error: ErrorDetail
-
-
-# ---------------------------------------------------------------------------
-# /auth/login
-# ---------------------------------------------------------------------------
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr = Field(..., description="User email address.")
-    password: str = Field(..., description="User password.")
-    remember_me: Optional[bool] = Field(None, description="Extend refresh token lifetime.")
 
 
 class MeResponse(BaseModel):
@@ -40,37 +19,50 @@ class MeResponse(BaseModel):
     created_at: datetime
 
 
-class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str
-    user: MeResponse
-
-
 # ---------------------------------------------------------------------------
-# /auth/register
+# Register
 # ---------------------------------------------------------------------------
 
 
 class RegisterRequest(BaseModel):
-    full_name: str = Field(..., description="User full name.")
-    email: EmailStr = Field(..., description="User email address.")
-    password: str = Field(..., description="User password.")
-    confirm_password: str = Field(..., description="Password confirmation.")
+    full_name: str = Field(..., min_length=1)
+    email: EmailStr
+    password: str
+    confirm_password: str
 
 
 class RegisterResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
     user: MeResponse
 
 
 # ---------------------------------------------------------------------------
-# /auth/forgot-password
+# Login
+# ---------------------------------------------------------------------------
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    remember_me: bool = False
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    user: MeResponse
+
+
+# ---------------------------------------------------------------------------
+# Forgot password
 # ---------------------------------------------------------------------------
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr = Field(..., description="Email address to send the reset link to.")
+    email: EmailStr
 
 
 class ForgotPasswordResponse(BaseModel):
@@ -78,14 +70,14 @@ class ForgotPasswordResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# /auth/reset-password
+# Reset password
 # ---------------------------------------------------------------------------
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str = Field(..., description="Password reset token received via email.")
-    password: str = Field(..., description="New password.")
-    confirm_password: str = Field(..., description="New password confirmation.")
+    token: str
+    password: str
+    confirm_password: str
 
 
 class ResetPasswordResponse(BaseModel):
@@ -93,7 +85,7 @@ class ResetPasswordResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# /auth/logout
+# Logout
 # ---------------------------------------------------------------------------
 
 
@@ -102,10 +94,26 @@ class LogoutResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# /auth/refresh
+# Refresh
 # ---------------------------------------------------------------------------
 
 
 class RefreshResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
+
+
+# ---------------------------------------------------------------------------
+# Error envelope
+# ---------------------------------------------------------------------------
+
+
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    details: Optional[object] = None
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorDetail
